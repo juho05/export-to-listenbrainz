@@ -19,7 +19,7 @@ FLAGS:
   --cookie <cookiename=cookievalue> (set the cookie for all web requests (except to ListenBrainz))
 
 COMMANDS:
-  navidrome <url> <x-nd-authorization value>
+  navidrome <url> <spread-duration> <x-nd-authorization value>
 
 	`, os.Args[0])
 	}

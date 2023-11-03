@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"strings"
@@ -13,15 +14,19 @@ import (
 )
 
 func navidrome(sendListen chan<- Listen) error {
-	if pflag.NArg() != 3 {
+	if pflag.NArg() != 4 {
 		pflag.Usage()
 		os.Exit(1)
+	}
+	spreadDur, err := time.ParseDuration(pflag.Arg(2))
+	if err != nil {
+		return fmt.Errorf("invalid spread duration: %s (valid example: 2h45m)", pflag.Arg(2))
 	}
 	req, err := newHTTPRequest(http.MethodGet, strings.TrimSuffix(pflag.Arg(1), "/")+"/api/song", nil)
 	if err != nil {
 		return fmt.Errorf("create song list request: %w", err)
 	}
-	req.Header.Set("X-ND-Authorization", pflag.Arg(2))
+	req.Header.Set("X-ND-Authorization", pflag.Arg(3))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request song list from Navidrome server: %w", err)
@@ -46,7 +51,6 @@ func navidrome(sendListen chan<- Listen) error {
 		}
 		type navidromeSong struct {
 			PlayCount   int     `json:"playCount"`
-			PlayDate    string  `json:"playDate"`
 			Title       string  `json:"title"`
 			Album       string  `json:"album"`
 			Artist      string  `json:"artist"`
@@ -63,11 +67,6 @@ func navidrome(sendListen chan<- Listen) error {
 			continue
 		}
 
-		playDate, err := time.Parse(time.RFC3339, song.PlayDate)
-		if err != nil {
-			return fmt.Errorf("decode song list from Navidrome server: parse play date: %w", err)
-		}
-
 		for i := 0; i < song.PlayCount; i++ {
 			sendListen <- Listen{
 				TrackMetadata: TrackMetadata{
@@ -80,7 +79,7 @@ func navidrome(sendListen chan<- Listen) error {
 						SubmissionClient: "navidrome",
 					},
 				},
-				ListenedAt: playDate.Unix()-int64(i),
+				ListenedAt: time.Now().Unix()-rand.Int63n(int64(spreadDur.Seconds())),
 			}
 		}
 	}
