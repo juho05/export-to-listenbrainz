@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -36,32 +35,27 @@ func navidrome(sendListen chan<- Listen) error {
 		return fmt.Errorf("request song list from Navidrome server: status: %s", res.Status)
 	}
 
-	arrScanner, err := newJsonObjectArrayScanner(res.Body)
+	type navidromeSong struct {
+		PlayCount   int     `json:"playCount"`
+		Title       string  `json:"title"`
+		Album       string  `json:"album"`
+		Artist      string  `json:"artist"`
+		Duration    float32 `json:"duration"`
+		DiscNumber  int     `json:"discNumber"`
+		TrackNumber int     `json:"trackNumber"`
+	}
+	arrScanner, err := newJsonObjectArrayScanner[navidromeSong](res.Body)
 	if err != nil {
 		return fmt.Errorf("read song list from Navidrome server: %w", err)
 	}
 
 	for {
-		data, err := arrScanner.nextObject()
+		song, err := arrScanner.nextObject()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			return fmt.Errorf("read song list from Navidrome server: %w", err)
-		}
-		type navidromeSong struct {
-			PlayCount   int     `json:"playCount"`
-			Title       string  `json:"title"`
-			Album       string  `json:"album"`
-			Artist      string  `json:"artist"`
-			Duration    float32 `json:"duration"`
-			DiscNumber  int     `json:"discNumber"`
-			TrackNumber int     `json:"trackNumber"`
-		}
-		var song navidromeSong
-		err = json.Unmarshal(data, &song)
-		if err != nil {
-			return fmt.Errorf("decode song list from Navidrome server: %w", err)
 		}
 		if song.PlayCount == 0 {
 			continue
@@ -79,7 +73,7 @@ func navidrome(sendListen chan<- Listen) error {
 						SubmissionClient: "navidrome",
 					},
 				},
-				ListenedAt: time.Now().Unix()-rand.Int63n(int64(spreadDur.Seconds())),
+				ListenedAt: time.Now().Unix() - rand.Int63n(int64(spreadDur.Seconds())),
 			}
 		}
 	}

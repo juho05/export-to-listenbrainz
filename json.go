@@ -3,21 +3,22 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"unicode"
 )
 
-type jsonObjectArrayScanner struct {
+type jsonObjectArrayScanner[T any] struct {
 	reader           *bufio.Reader
 	openBracketCount int
 	openParenCount   int
 	buffer           *bytes.Buffer
 }
 
-func newJsonObjectArrayScanner(reader io.Reader) (*jsonObjectArrayScanner, error) {
-	scanner := &jsonObjectArrayScanner{
+func newJsonObjectArrayScanner[T any](reader io.Reader) (*jsonObjectArrayScanner[T], error) {
+	scanner := &jsonObjectArrayScanner[T]{
 		reader: bufio.NewReader(reader),
 		buffer: new(bytes.Buffer),
 	}
@@ -38,11 +39,12 @@ func newJsonObjectArrayScanner(reader io.Reader) (*jsonObjectArrayScanner, error
 	return scanner, nil
 }
 
-func (s *jsonObjectArrayScanner) nextObject() ([]byte, error) {
+func (s *jsonObjectArrayScanner[T]) nextObject() (T, error) {
+	var obj T
 	for {
 		r, _, err := s.reader.ReadRune()
 		if err != nil {
-			return nil, fmt.Errorf("read json object: %w", err)
+			return obj, fmt.Errorf("read json object: %w", err)
 		}
 		if unicode.IsSpace(r) || r == ',' {
 			continue
@@ -55,16 +57,16 @@ func (s *jsonObjectArrayScanner) nextObject() ([]byte, error) {
 		if r == ']' {
 			s.openBracketCount--
 			if s.openBracketCount == 0 {
-				return nil, io.EOF
+				return obj, io.EOF
 			}
 		}
-		return nil, fmt.Errorf("read json object: unexpected character: %c", r)
+		return obj, fmt.Errorf("read json object: unexpected character: %c", r)
 	}
 
 	for s.openParenCount > 0 {
 		r, _, err := s.reader.ReadRune()
 		if err != nil {
-			return nil, fmt.Errorf("read json object: %w", err)
+			return obj, fmt.Errorf("read json object: %w", err)
 		}
 		if r == '{' {
 			s.openParenCount++
@@ -75,8 +77,10 @@ func (s *jsonObjectArrayScanner) nextObject() ([]byte, error) {
 		s.buffer.WriteRune(r)
 	}
 
-	bytes := make([]byte, len(s.buffer.Bytes()))
-	copy(bytes, s.buffer.Bytes())
+	err := json.Unmarshal(s.buffer.Bytes(), &obj)
 	s.buffer.Reset()
-	return bytes, nil
+	if err != nil {
+		return obj, fmt.Errorf("decode json object: %w", err)
+	}
+	return obj, nil
 }
