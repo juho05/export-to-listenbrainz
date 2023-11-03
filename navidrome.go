@@ -75,13 +75,12 @@ func navidrome(sendListen chan<- Listen) error {
 					Album:  song.Album,
 					Artist: song.Artist,
 					AdditionalInfo: AdditionalInfo{
-						DurationMS:       int(song.Duration * 1000),
 						DiscNumber:       song.DiscNumber,
 						TrackNumber:      song.TrackNumber,
 						SubmissionClient: "navidrome",
 					},
 				},
-				ListenedAt: playDate.Unix(),
+				ListenedAt: playDate.Unix()-int64(i),
 			}
 		}
 	}

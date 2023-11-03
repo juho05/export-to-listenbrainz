@@ -10,7 +10,6 @@ import (
 )
 
 type AdditionalInfo struct {
-	DurationMS       int    `json:"duration_ms,omitempty"`
 	SubmissionClient string `json:"submission_client,omitempty"`
 	MusicService     string `json:"music_service,omitempty"`
 	OriginURL        string `json:"origin_url,omitempty"`
@@ -62,6 +61,7 @@ func sendListensBatch(listens []Listen) error {
 			if res.StatusCode == http.StatusTooManyRequests {
 				waitSeconds, err := strconv.Atoi(res.Header.Get("X-RateLimit-Reset-In"))
 				if err == nil {
+					fmt.Printf("Waiting %ds due to rate limit...\n", waitSeconds+1)
 					time.Sleep(time.Duration(waitSeconds+1) * time.Second)
 					continue
 				}
