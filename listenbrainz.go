@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,6 +17,7 @@ type AdditionalInfo struct {
 	SpotifyID        string `json:"spotify_id,omitempty"`
 	DiscNumber       int    `json:"discnumber,omitempty"`
 	TrackNumber      int    `json:"tracknumber,omitempty"`
+	DurationMS       int64  `json:"duration_ms,omitempty"`
 }
 
 type TrackMetadata struct {
@@ -56,8 +58,13 @@ func sendListensBatch(listens []Listen) error {
 		if err != nil {
 			return fmt.Errorf("send listens to listenbrainz.org: %w", err)
 		}
-		res.Body.Close()
 		if res.StatusCode != http.StatusOK {
+			body, err := io.ReadAll(res.Body)
+			var errorMsg string
+			if err == nil {
+				errorMsg = string(body)
+			}
+			res.Body.Close()
 			if res.StatusCode == http.StatusTooManyRequests {
 				waitSeconds, err := strconv.Atoi(res.Header.Get("X-RateLimit-Reset-In"))
 				if err == nil {
@@ -66,8 +73,9 @@ func sendListensBatch(listens []Listen) error {
 					continue
 				}
 			}
-			return fmt.Errorf("send listens to listenbrainz.org: status: %s", res.Status)
+			return fmt.Errorf("send listens to listenbrainz.org: status: %s: %s", res.Status, errorMsg)
 		}
+		res.Body.Close()
 		break
 	}
 	return nil

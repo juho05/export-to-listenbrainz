@@ -70,7 +70,8 @@ func navidrome(sendListen chan<- Listen) error {
 					AdditionalInfo: AdditionalInfo{
 						DiscNumber:       song.DiscNumber,
 						TrackNumber:      song.TrackNumber,
-						SubmissionClient: "navidrome",
+						MusicService: "navidrome",
+						SubmissionClient: "export-to-listenbrainz",
 					},
 				},
 				ListenedAt: time.Now().Unix() - rand.Int63n(int64(spreadDur.Seconds())),

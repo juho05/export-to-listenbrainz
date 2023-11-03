@@ -20,6 +20,7 @@ FLAGS:
 
 COMMANDS:
   navidrome <url> <spread-duration> <x-nd-authorization value>
+  spotify <history-file>
 
 	`, os.Args[0])
 	}
@@ -71,6 +72,8 @@ func main() {
 	switch pflag.Arg(0) {
 	case "navidrome":
 		err = navidrome(listenChannel)
+	case "spotify":
+		err = spotify(listenChannel)
 	default:
 		err = fmt.Errorf("unknown source: %s", pflag.Arg(0))
 	}
