@@ -4,8 +4,8 @@ Upload listen data from various sources to https://listenbrainz.org.
 
 ## Sources
 
-- [ ] Navidrome
-- [ ] Spotify
+- [x] Navidrome
+- [x] Spotify
 
 ## License
 
