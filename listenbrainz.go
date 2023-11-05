@@ -33,7 +33,7 @@ type Listen struct {
 }
 
 func sendListensBatch(listens []Listen) error {
-	fmt.Printf("Uploading batch (%d)...\n", len(listens))
+	fmt.Printf("Uploading batch (%d)... ", len(listens))
 	type request struct {
 		ListenType string   `json:"listen_type"`
 		Payload    []Listen `json:"payload"`
@@ -68,7 +68,7 @@ func sendListensBatch(listens []Listen) error {
 			if res.StatusCode == http.StatusTooManyRequests {
 				waitSeconds, err := strconv.Atoi(res.Header.Get("X-RateLimit-Reset-In"))
 				if err == nil {
-					fmt.Printf("Waiting %ds due to rate limit...\n", waitSeconds+1)
+					fmt.Printf("Waiting %ds due to rate limit... ", waitSeconds+1)
 					time.Sleep(time.Duration(waitSeconds+1) * time.Second)
 					continue
 				}
@@ -78,6 +78,7 @@ func sendListensBatch(listens []Listen) error {
 		res.Body.Close()
 		break
 	}
+	fmt.Println("done")
 	return nil
 }
 
@@ -92,15 +93,15 @@ func sendListens(listens <-chan Listen) error {
 			}
 			break
 		}
-		if len(listensBatch) < 1000 {
-			listensBatch = append(listensBatch, l)
-		}
+		listensBatch = append(listensBatch, l)
 		if len(listensBatch) == 1000 {
 			err := sendListensBatch(listensBatch)
 			if err != nil {
 				return err
 			}
 			listensBatch = listensBatch[:0]
+		} else if len(listensBatch) > 1000 {
+			panic("len(listensBatch) should never exceed 1000")
 		}
 	}
 	return nil

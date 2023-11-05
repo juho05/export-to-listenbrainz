@@ -31,6 +31,9 @@ func spotify(sendListen chan<- Listen) error {
 		SpotifyTrackURI string `json:"spotify_track_uri"`
 	}
 	arrScanner, err := newJsonObjectArrayScanner[spotifyListen](file)
+	if err != nil {
+		return fmt.Errorf("read song list from history file: %w", err)
+	}
 	for {
 		song, err := arrScanner.nextObject()
 		if err == io.EOF {
@@ -49,7 +52,7 @@ func spotify(sendListen chan<- Listen) error {
 			continue
 		}
 
-		songURL := "https://open.spotify.com/track/"+strings.Split(song.SpotifyTrackURI, ":")[2]
+		songURL := "https://open.spotify.com/track/" + strings.Split(song.SpotifyTrackURI, ":")[2]
 
 		sendListen <- Listen{
 			TrackMetadata: TrackMetadata{
@@ -57,11 +60,11 @@ func spotify(sendListen chan<- Listen) error {
 				Album:  song.AlbumName,
 				Artist: song.ArtistName,
 				AdditionalInfo: AdditionalInfo{
-					MusicService: "spotify.com",
+					MusicService:     "spotify.com",
 					SubmissionClient: "export-to-listenbrainz",
-					SpotifyID: songURL,
-					OriginURL: songURL,
-					DurationMS: song.MSPlayed,
+					SpotifyID:        songURL,
+					OriginURL:        songURL,
+					DurationMS:       song.MSPlayed,
 				},
 			},
 			ListenedAt: listenedAt.Unix(),

@@ -17,10 +17,12 @@ func navidrome(sendListen chan<- Listen) error {
 		pflag.Usage()
 		os.Exit(1)
 	}
-	spreadDur, err := time.ParseDuration(pflag.Arg(2))
+	spreadFrom, err := time.Parse(time.DateOnly, pflag.Arg(2))
 	if err != nil {
 		return fmt.Errorf("invalid spread duration: %s (valid example: 2h45m)", pflag.Arg(2))
 	}
+	spreadSeconds := int64(time.Since(spreadFrom).Seconds())
+
 	req, err := newHTTPRequest(http.MethodGet, strings.TrimSuffix(pflag.Arg(1), "/")+"/api/song", nil)
 	if err != nil {
 		return fmt.Errorf("create song list request: %w", err)
@@ -70,11 +72,11 @@ func navidrome(sendListen chan<- Listen) error {
 					AdditionalInfo: AdditionalInfo{
 						DiscNumber:       song.DiscNumber,
 						TrackNumber:      song.TrackNumber,
-						MusicService: "navidrome",
+						MusicService:     "navidrome",
 						SubmissionClient: "export-to-listenbrainz",
 					},
 				},
-				ListenedAt: time.Now().Unix() - rand.Int63n(int64(spreadDur.Seconds())),
+				ListenedAt: time.Now().Unix() - rand.Int63n(spreadSeconds),
 			}
 		}
 	}

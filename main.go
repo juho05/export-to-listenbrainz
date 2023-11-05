@@ -19,7 +19,7 @@ FLAGS:
   --cookie <cookiename=cookievalue> (set the cookie for all web requests (except to ListenBrainz))
 
 COMMANDS:
-  navidrome <url> <spread-duration> <x-nd-authorization value>
+  navidrome <url> <spread-from (YYYY-MM-DD)> <x-nd-authorization value>
   spotify <history-file>
 
 	`, os.Args[0])
