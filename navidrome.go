@@ -74,6 +74,7 @@ func navidrome(sendListen chan<- Listen) error {
 						TrackNumber:      song.TrackNumber,
 						MusicService:     "navidrome",
 						SubmissionClient: "export-to-listenbrainz",
+						DurationMS: int64(song.Duration),
 					},
 				},
 				ListenedAt: time.Now().Unix() - rand.Int63n(spreadSeconds),
