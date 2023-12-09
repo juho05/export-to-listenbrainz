@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/pflag"
 )
@@ -17,10 +18,12 @@ func init() {
 FLAGS:
   --token <token> (ListenBrainz user token (https://listenbrainz.org/profile/)) REQUIRED
   --cookie <cookiename=cookievalue> (set the cookie for all web requests (except to ListenBrainz))
+  --from <YYYY-MM-DD> (only export listens >= this date)
+  --until <YYYY-MM-DD> (only export listens <= this date)
 
 COMMANDS:
-  navidrome <url> <spread-from (YYYY-MM-DD)> <x-nd-authorization value>
-  spotify <history-file>
+  navidrome <url> <x-nd-authorization value>
+  spotify <history-files...>
 
 	`, os.Args[0])
 	}
@@ -28,6 +31,8 @@ COMMANDS:
 
 var cookies []string
 var listenBrainzToken string
+var from = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+var until = time.Now().UTC()
 var uploadDone = make(chan struct{})
 
 func newHTTPRequest(method, url string, body io.Reader) (*http.Request, error) {
@@ -51,11 +56,30 @@ func newHTTPRequest(method, url string, body io.Reader) (*http.Request, error) {
 func main() {
 	pflag.StringArrayVar(&cookies, "cookie", nil, "set a cookie for all web requests (except to Listenbrainz)")
 	pflag.StringVar(&listenBrainzToken, "token", "", "ListenBrainz user token (https://listenbrainz.org/profile)")
+	var fromStr string
+	pflag.StringVar(&fromStr, "from", "", "only export listens >= this date")
+	var untilStr string
+	pflag.StringVar(&untilStr, "until", "", "only export listens <= this date")
 	pflag.Parse()
 	if pflag.NArg() == 0 || listenBrainzToken == "" {
-		fmt.Println()
 		pflag.Usage()
 		os.Exit(1)
+	}
+
+	var err error
+	if fromStr != "" {
+		from, err = time.Parse(time.DateOnly, fromStr)
+		if err != nil {
+			pflag.Usage()
+			os.Exit(1)
+		}
+	}
+	if untilStr != "" {
+		until, err = time.Parse(time.DateOnly, untilStr)
+		if err != nil {
+			pflag.Usage()
+			os.Exit(1)
+		}
 	}
 
 	listenChannel := make(chan Listen)
@@ -68,7 +92,6 @@ func main() {
 		}
 		close(uploadDone)
 	}()
-	var err error
 	switch pflag.Arg(0) {
 	case "navidrome":
 		err = navidrome(listenChannel)

@@ -16,8 +16,8 @@ func spotify(sendListen chan<- Listen) error {
 		os.Exit(1)
 	}
 	for i := 1; i < pflag.NArg(); i++ {
-		fmt.Printf("Exporting %s...\n", pflag.Arg(i))
-		file, err := os.Open(pflag.Arg(1))
+		file, err := os.Open(pflag.Arg(i))
+		fmt.Printf("Exporting %s...\n", file.Name())
 		if err != nil {
 			return fmt.Errorf("open spotify history file: %w", err)
 		}
@@ -50,6 +50,10 @@ func spotify(sendListen chan<- Listen) error {
 			}
 
 			if song.TrackName == "" || song.ArtistName == "" || song.MSPlayed < 30000 {
+				continue
+			}
+			listenedAtDate := time.Date(listenedAt.Year(), listenedAt.Month(), listenedAt.Day(), 0, 0, 0, 0, listenedAt.Location())
+			if listenedAtDate.Compare(from) < 0 || listenedAtDate.Compare(until) > 0 {
 				continue
 			}
 
