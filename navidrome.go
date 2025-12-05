@@ -22,7 +22,7 @@ func navidrome(sendListen chan<- Listen) error {
 	if err != nil {
 		return fmt.Errorf("create song list request: %w", err)
 	}
-	req.Header.Set("X-ND-Authorization", pflag.Arg(3))
+	req.Header.Set("X-ND-Authorization", pflag.Arg(2))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request song list from Navidrome server: %w", err)
