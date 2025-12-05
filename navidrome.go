@@ -46,6 +46,18 @@ func navidrome(sendListen chan<- Listen) error {
 		return fmt.Errorf("read song list from Navidrome server: %w", err)
 	}
 
+	if from.IsZero() {
+		from = until.Add(-time.Hour)
+	}
+	if from.Before(time.Date(2003, 0, 0, 0, 0, 0, 0, time.UTC)) {
+		from = time.Date(2003, 0, 0, 0, 0, 0, 0, time.UTC)
+	}
+
+	if until.Before(from) {
+		until = from
+	}
+
+	difference := until.Sub(from) / time.Second
 	for {
 		song, err := arrScanner.nextObject()
 		if err == io.EOF {
@@ -72,7 +84,7 @@ func navidrome(sendListen chan<- Listen) error {
 						DurationMS:       int64(song.Duration),
 					},
 				},
-				ListenedAt: from.Add(time.Duration(rand.Int63n(int64(until.Add(23*time.Hour + 59*time.Minute + 59*time.Second).Sub(from))))).Unix(),
+				ListenedAt: from.Add(time.Duration(rand.Int63n(int64(difference))) * time.Second).Unix(),
 			}
 		}
 	}

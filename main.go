@@ -31,7 +31,7 @@ COMMANDS:
 
 var cookies []string
 var listenBrainzToken string
-var from = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+var from time.Time
 var until = time.Now().UTC()
 var uploadDone = make(chan struct{})
 
