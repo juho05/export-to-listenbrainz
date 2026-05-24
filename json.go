@@ -1,84 +1,46 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"unicode"
 )
 
 type jsonObjectArrayScanner[T any] struct {
-	reader           *bufio.Reader
-	openBracketCount int
-	openParenCount   int
-	buffer           *bytes.Buffer
+	decoder *json.Decoder
 }
 
 func newJsonObjectArrayScanner[T any](reader io.Reader) (*jsonObjectArrayScanner[T], error) {
-	scanner := &jsonObjectArrayScanner[T]{
-		reader: bufio.NewReader(reader),
-		buffer: new(bytes.Buffer),
+	decoder := json.NewDecoder(reader)
+	// Read the open bracket '['
+	t, err := decoder.Token()
+	if err != nil {
+		return nil, fmt.Errorf("read [ character: %w", err)
 	}
-	for {
-		r, _, err := scanner.reader.ReadRune()
-		if err != nil {
-			return nil, fmt.Errorf("read [ character: %w", err)
-		}
-		if unicode.IsSpace(r) {
-			continue
-		}
-		if r == '[' {
-			scanner.openBracketCount++
-			break
-		}
-		return nil, errors.New("json object is not an array")
+	delim, ok := t.(json.Delim)
+	if !ok || delim != '[' {
+		return nil, fmt.Errorf("json object is not an array")
 	}
-	return scanner, nil
+	return &jsonObjectArrayScanner[T]{
+		decoder: decoder,
+	}, nil
 }
 
 func (s *jsonObjectArrayScanner[T]) nextObject() (T, error) {
 	var obj T
-	for {
-		r, _, err := s.reader.ReadRune()
+	if !s.decoder.More() {
+		// Read the closing bracket ']'
+		t, err := s.decoder.Token()
 		if err != nil {
 			return obj, fmt.Errorf("read json object: %w", err)
 		}
-		if unicode.IsSpace(r) || r == ',' {
-			continue
+		delim, ok := t.(json.Delim)
+		if !ok || delim != ']' {
+			return obj, fmt.Errorf("read json object: unexpected character: %v", t)
 		}
-		if r == '{' {
-			s.buffer.WriteRune(r)
-			s.openParenCount++
-			break
-		}
-		if r == ']' {
-			s.openBracketCount--
-			if s.openBracketCount == 0 {
-				return obj, io.EOF
-			}
-		}
-		return obj, fmt.Errorf("read json object: unexpected character: %c", r)
+		return obj, io.EOF
 	}
-
-	for s.openParenCount > 0 {
-		r, _, err := s.reader.ReadRune()
-		if err != nil {
-			return obj, fmt.Errorf("read json object: %w", err)
-		}
-		if r == '{' {
-			s.openParenCount++
-		}
-		if r == '}' {
-			s.openParenCount--
-		}
-		s.buffer.WriteRune(r)
-	}
-
-	err := json.Unmarshal(s.buffer.Bytes(), &obj)
-	s.buffer.Reset()
+	err := s.decoder.Decode(&obj)
 	if err != nil {
 		return obj, fmt.Errorf("decode json object: %w", err)
 	}
